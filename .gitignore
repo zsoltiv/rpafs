@@ -1,0 +1,7 @@
+rpafs
+*.o
+*.txt
+*.json
+*.webp
+*.webm
+.cache/
