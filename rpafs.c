@@ -24,12 +24,38 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <stddef.h>
 
+#define FUSE_USE_VERSION 31
+#include <fuse.h>
 #include <zlib.h>
 
 #include "decompressor.h"
 #include "unpickle.h"
 #include "fs.h"
+#include "fuse.h"
+
+extern struct rpa_node root;
+extern blksize_t archive_blocksize;
+extern int rpafd;
+
+struct fuse_operations rpa_ops = {
+    .init = rpa_init,
+    .getattr = rpa_getattr,
+    .readdir = rpa_readdir,
+    .open = rpa_open,
+    .read = rpa_read,
+};
+
+static struct rpa_options {
+    const char *archive_name;
+} rpa_opts;
+
+#define OPTION(t, p) { t, offsetof(struct rpa_options, p), 1 }
+struct fuse_opt fuse_opts[] = {
+    OPTION("--archive=%s", archive_name),
+    FUSE_OPT_END,
+};
 
 #define RPA3_HEADER_SZ 34
 
@@ -37,31 +63,29 @@ static const char RPA3_MAGIC[] = {'R', 'P', 'A', '-', '3', '.', '0'};
 
 int main(int argc, char **argv)
 {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: rpafs </path/to/archive.rpa> </path/to/mount/point>\n");
+    struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+    if (fuse_opt_parse(&args, &rpa_opts, fuse_opts, NULL) < 0) {
+        fprintf(stderr, "Usage: rpafs --archive=</path/to/archive.rpa> </path/to/mount/point>\n");
         return EXIT_FAILURE;
     }
 
-    int rpafd, ret;
-    if ((rpafd = open(argv[1], O_RDONLY)) < 0) {
+    if (!rpa_opts.archive_name) {
+        fprintf(stderr, "No archive name supplied\n");
+        return EXIT_FAILURE;
+    }
+
+    int ret;
+    if ((rpafd = open(rpa_opts.archive_name, O_RDONLY)) < 0) {
         fprintf(stderr, "Failed to open rpa file: %s\n", strerror(errno));
         return EXIT_FAILURE;
     }
 
     struct stat st;
-    if (stat(argv[2], &st) < 0) {
-        fprintf(stderr, "Failed to stat mount point %s: %s\n", argv[2], strerror(errno));
-        goto err_stat;
-    }
-    if (!S_ISDIR(st.st_mode)) {
-        fprintf(stderr, "%s is not a directory!\n", argv[2]);
-        goto err_stat;
-    }
-
     if (fstat(rpafd, &st) < 0) {
-        fprintf(stderr, "Failed to stat %s: %s", argv[1], strerror(errno));
+        fprintf(stderr, "Failed to stat %s: %s", rpa_opts.archive_name, strerror(errno));
         goto err_stat;
     }
+    archive_blocksize = st.st_blksize;
     off_t archive_sz = st.st_size;
     if (archive_sz < RPA3_HEADER_SZ) {
         fprintf(stderr, "Missing RPA-3.0 header\n");
@@ -76,7 +100,6 @@ int main(int argc, char **argv)
         }
         goto err_stat;
     }
-    fwrite(header, 1, RPA3_HEADER_SZ, stdout);
     if (memcmp(header, RPA3_MAGIC, sizeof(RPA3_MAGIC))) {
         fprintf(stderr, "Wrong header\n");
         goto err_stat;
@@ -85,9 +108,8 @@ int main(int argc, char **argv)
     char *prev = NULL;
     uint64_t compressed_index_offset = (uint64_t)strtoull(&header[sizeof(RPA3_MAGIC) + 2], &prev, 16);
     uint64_t xor_key = (uint64_t)strtoull(prev + 1, NULL, 16);
-    printf("encoded_index_offset=%"PRIx64" xor_key=%"PRIx64"\n", compressed_index_offset, xor_key);
+    //printf("encoded_index_offset=%"PRIx64" xor_key=%"PRIx64"\n", compressed_index_offset, xor_key);
     uint64_t compressed_index_sz = archive_sz - compressed_index_offset;
-    printf("dictsize=%"PRIu64"\n", compressed_index_sz);
 
     if (lseek(rpafd, compressed_index_offset, SEEK_SET) < 0) {
         fprintf(stderr, "lseek() failed: %s\n", strerror(errno));
@@ -106,20 +128,12 @@ int main(int argc, char **argv)
         goto err_index;
     }
     free(compressed_index);
-    printf("file_index_sz=%"PRIu64"\n", file_index_sz);
-    {
-        FILE* f = fopen("dump.txt", "w");
-        fwrite(file_index, 1, file_index_sz, f);
-        fclose(f);
-    }
 
-    struct rpa_node root = {
-        .is_dir = true,
-        .node.dir.nb_entries = 0,
-        .node.dir.entries = NULL,
-    };
     unpickle_index(file_index_sz, file_index, xor_key, &root);
     free(file_index);
+
+    ret = fuse_main(args.argc, args.argv, &rpa_ops, &root);
+    fuse_opt_free_args(&args);
 
     return EXIT_SUCCESS;
 

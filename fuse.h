@@ -16,29 +16,25 @@
  *    If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef FS_H
-#define FS_H
+#ifndef FUSE_H
+#define FUSE_H
 
-#include <stdbool.h>
-#include <inttypes.h>
+#define FUSE_USE_VERSION 31
+#include <fuse.h>
 
-struct rpa_node {
-    char *name;
-    union {
-        struct {
-            uint32_t offset, size;
-        } file;
-        struct {
-            struct rpa_node **entries;
-            int nb_entries;
-        } dir;
-    } node;
-    bool is_dir;
-};
-
-const char *next_slash(const char *p);
-
-struct rpa_node *rpa_find_node(struct rpa_node *root, const char *path);
-void add_node_to_tree(struct rpa_node *root, const char *path, uint32_t offset, uint32_t size);
+void *rpa_init(struct fuse_conn_info *ci, struct fuse_config *cfg);
+int rpa_getattr(const char *path, struct stat *st, struct fuse_file_info *fi);
+int rpa_readdir(const char *path,
+                void *data,
+                fuse_fill_dir_t filler,
+                off_t offset,
+                struct fuse_file_info *ffi,
+                enum fuse_readdir_flags flags);
+int rpa_open(const char *path, struct fuse_file_info *fi);
+int rpa_read(const char *path,
+             char *buf,
+             size_t sz,
+             off_t offset,
+             struct fuse_file_info *fi);
 
 #endif
