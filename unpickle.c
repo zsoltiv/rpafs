@@ -53,7 +53,6 @@ void unpickle_index(const uint64_t file_index_sz,
                     struct rpa_node *root)
 {
     const uint8_t *p = file_index;
-    // preallocate 10k entries, will reallocate later
     enum next_binint next_binint = NEXT_OFFSET;
     uint32_t val = 0;
     char *path = NULL;
@@ -87,6 +86,18 @@ void unpickle_index(const uint64_t file_index_sz,
                 memcpy(path, p + 2, val);
                 p += 2 + val;
                 break;
+            case LONG:
+            case BININT1:
+            case BININT2:
+            case STRING:
+            case BINSTRING:
+            case UNICODE:
+            case BINUNICODE:
+            case (uint8_t) LONG1:
+            case (uint8_t) LONG4:
+            case (uint8_t) BINUNICODE8:
+            case SHORT_BINSTRING:
+                fprintf(stderr, "Unhandled opcode %x\n", *p);
             default:
                 p++;
         }
