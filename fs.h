@@ -24,18 +24,19 @@
 
 struct rpa_node {
     char *name;
-    bool is_dir;
     union {
         struct {
             uint32_t offset, size;
         } file;
         struct {
+            struct rpa_node **entries;
             int nb_entries;
-            struct rpa_node *entries;
         } dir;
     } node;
+    bool is_dir;
 };
 
 struct rpa_node *rpa_find_node(struct rpa_node *root, const char *path);
+void add_node_to_tree(struct rpa_node *root, const char *path, uint32_t offset, uint32_t size);
 
 #endif

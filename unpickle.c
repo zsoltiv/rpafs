@@ -21,7 +21,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "archive_entry.h"
+#include "fs.h"
 #include "unpickle.h"
 
 // Relevant opcodes taken from CPython
@@ -50,15 +50,15 @@ enum next_binint {
 void unpickle_index(const uint64_t file_index_sz,
                     const uint8_t file_index[static file_index_sz],
                     uint32_t key,
-                    unsigned *entry_count,
-                    struct rpa_entry *entries[static *entry_count])
+                    struct rpa_node *root)
 {
     const uint8_t *p = file_index;
     // preallocate 10k entries, will reallocate later
     unsigned nb_entries = 10000, entry_idx = 0;
     enum next_binint next_binint = NEXT_OFFSET;
     uint32_t val = 0;
-    *entries = calloc(sizeof(struct rpa_entry) * nb_entries, 1);
+    char *path = NULL;
+    uint32_t size, offset;
     while (p < file_index + file_index_sz) {
         switch(*p) {
             case BININT:
@@ -68,15 +68,12 @@ void unpickle_index(const uint64_t file_index_sz,
                        ((*(p + 4)) << 24)) ^ key;
                 switch (next_binint) {
                     case NEXT_OFFSET:
-                        (*entries)[entry_idx].offset = val;
+                        offset = val;
                         break;
                     case NEXT_SIZE:
-                        (*entries)[entry_idx].size = val;
+                        size = val;
                         entry_idx++;
-                        if (entry_idx == nb_entries) {
-                            nb_entries *= 2;
-                            *entries = realloc(*entries, sizeof(struct rpa_entry) * nb_entries);
-                        }
+                        add_node_to_tree(root, path, offset, size);
                         break;
                 }
                 next_binint = !next_binint;
@@ -84,15 +81,16 @@ void unpickle_index(const uint64_t file_index_sz,
                 break;
             case (uint8_t) SHORT_BINUNICODE:
                 val = (*(p + 1));
-                (*entries)[entry_idx].name = calloc(val + 1, 1);
-                memcpy((*entries)[entry_idx].name, p + 2, val);
+                if (path) {
+                    free(path);
+                    path = NULL;
+                }
+                path = calloc(val + 1, 1);
+                memcpy(path, p + 2, val);
                 p += 2 + val;
                 break;
             default:
                 p++;
         }
     }
-
-    *entry_count = entry_idx;
-    *entries = realloc(*entries, (*entry_count) * sizeof(struct rpa_entry));
 }

@@ -25,12 +25,9 @@
 #include <unistd.h>
 #include <inttypes.h>
 
-#define FUSE_USE_VERSION 31
-#include <fuse.h>
 #include <zlib.h>
 
 #include "decompressor.h"
-#include "archive_entry.h"
 #include "unpickle.h"
 #include "fs.h"
 
@@ -116,16 +113,13 @@ int main(int argc, char **argv)
         fclose(f);
     }
 
-    struct rpa_entry *entries = NULL;
-    uint32_t nb_entries = 0;
-    unpickle_index(file_index_sz, file_index, xor_key, &nb_entries, &entries);
-    for (unsigned i = 0; i < nb_entries; i++) {
-        printf("name=%s\toffset=%"PRIu32"\tsize=%"PRIu32"\n", entries[i].name, entries[i].offset, entries[i].size);
-    }
+    struct rpa_node root = {
+        .is_dir = true,
+        .node.dir.nb_entries = 0,
+        .node.dir.entries = NULL,
+    };
+    unpickle_index(file_index_sz, file_index, xor_key, &root);
     free(file_index);
-    fflush(stdout);
-    for(int i = 0; i<20;i++)printf("\n");
-    rpa_find_node(NULL, entries[0].name);
 
     return EXIT_SUCCESS;
 

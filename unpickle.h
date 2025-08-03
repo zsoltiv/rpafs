@@ -21,12 +21,11 @@
 
 #include <inttypes.h>
 
-#include "archive_entry.h"
+#include "fs.h"
 
 void unpickle_index(const uint64_t file_index_sz,
                     const uint8_t file_index[static file_index_sz],
                     uint32_t key,
-                    unsigned *entry_count,
-                    struct rpa_entry *entries[static *entry_count]);
+                    struct rpa_node *root);
 
 #endif
