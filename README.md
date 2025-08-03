@@ -1,12 +1,15 @@
 # rpafs
 
-Mount a Ren'Py archive as FUSE filesystem.
+Mount a Ren'Py archive as a FUSE filesystem.
 
 # Usage
 
 ```sh
-rpafs </path/to/archive.rpa> </path/to/mount/point>
+rpafs --archive=</path/to/archive.rpa> [-d] [-f] </path/to/mount/point>
 ```
+
+`-d` enables FUSE-level debug information to be printed, and `-f` runs the
+file system process in the foreground.
 
 # Requirements
 
@@ -16,4 +19,4 @@ rpafs </path/to/archive.rpa> </path/to/mount/point>
 
 # License
 
-GPLLv3
+GPLv3
