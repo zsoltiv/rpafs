@@ -54,7 +54,6 @@ void unpickle_index(const uint64_t file_index_sz,
 {
     const uint8_t *p = file_index;
     // preallocate 10k entries, will reallocate later
-    unsigned nb_entries = 10000, entry_idx = 0;
     enum next_binint next_binint = NEXT_OFFSET;
     uint32_t val = 0;
     char *path = NULL;
@@ -72,7 +71,6 @@ void unpickle_index(const uint64_t file_index_sz,
                         break;
                     case NEXT_SIZE:
                         size = val;
-                        entry_idx++;
                         add_node_to_tree(root, path, offset, size);
                         break;
                 }

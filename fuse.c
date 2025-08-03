@@ -142,7 +142,7 @@ int rpa_read(const char *path,
     if (offset + sz > asset_size) {
         sz = asset_size - offset;
     }
-    if (lseek(rpafd, node->node.file.offset + offset, SEEK_SET) < 0)
+    if (lseek(rpafd, asset_offset + offset, SEEK_SET) < 0)
         return -errno;
     int ret = 0;
     do {

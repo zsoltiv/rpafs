@@ -141,6 +141,5 @@ err_index:
     free(compressed_index);
 err_stat:
     close(rpafd);
-err_argc:
     return EXIT_FAILURE;
 }
