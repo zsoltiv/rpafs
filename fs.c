@@ -19,7 +19,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#define _FILE_OFFSET_BITS 64
+#include <sys/types.h>
 #define FUSE_USE_VERSION 31
 #include <fuse.h>
 
@@ -32,17 +33,19 @@ const char *next_slash(const char *p)
     return q;
 }
 
-void add_node_to_tree(struct rpa_node *root, const char *path, uint32_t offset, uint32_t size)
+void add_node_to_tree(struct rpa_node *root, const char *path, off_t offset, off_t size)
 {
     struct rpa_node *node = root;
     const char *p = path;
     size_t path_len = strlen(path);
     while (p < path + path_len) {
         const char *q = next_slash(p);
+        size_t component_len = q - p;
         bool found = false;
         for (unsigned i = 0; i < node->node.dir.nb_entries; i++) {
             struct rpa_node *e = node->node.dir.entries[i];
-            if (strncmp(e->name, p, q - p) == 0) {
+            size_t node_name_len = strlen(e->name);
+            if (component_len == node_name_len && strncmp(e->name, p, component_len) == 0) {
                 found = true;
                 node = e;
                 break;
@@ -70,7 +73,6 @@ void add_node_to_tree(struct rpa_node *root, const char *path, uint32_t offset, 
     }
 }
 
-// TODO
 struct rpa_node *rpa_find_node(struct rpa_node *root, const char *path)
 {
     printf("path=%s\n", path);

@@ -52,8 +52,7 @@ static struct rpa_node *find_node(struct rpa_node *root, const char *path)
         for (unsigned i = 0; i < node->node.dir.nb_entries; i++) {
             struct rpa_node *e = node->node.dir.entries[i];
             size_t node_name_len = strlen(e->name);
-            size_t chars_to_compare = component_len > node_name_len ? node_name_len : component_len;
-            if (strncmp(e->name, p, chars_to_compare) == 0) {
+            if (component_len == node_name_len && strncmp(e->name, p, component_len) == 0) {
                 node = e;
                 found = true;
                 break;

@@ -20,17 +20,19 @@
 #define FS_H
 
 #include <stdbool.h>
+#define _FILE_OFFSET_BITS 64 // refer to the manual page `feature_test_macros`
+#include <sys/types.h>
 #include <inttypes.h>
 
 struct rpa_node {
     char *name;
     union {
         struct {
-            uint32_t offset, size;
+            off_t offset, size;
         } file;
         struct {
             struct rpa_node **entries;
-            int nb_entries;
+            uint64_t nb_entries;
         } dir;
     } node;
     bool is_dir;
@@ -39,6 +41,6 @@ struct rpa_node {
 const char *next_slash(const char *p);
 
 struct rpa_node *rpa_find_node(struct rpa_node *root, const char *path);
-void add_node_to_tree(struct rpa_node *root, const char *path, uint32_t offset, uint32_t size);
+void add_node_to_tree(struct rpa_node *root, const char *path, off_t offset, off_t size);
 
 #endif
