@@ -133,18 +133,22 @@ int rpa_read(const char *path,
              struct fuse_file_info *fi)
 {
     struct rpa_node *node = find_node(&root, path);
-    uint32_t asset_offset = node->node.file.offset;
-    uint32_t asset_size = node->node.file.size;
-    if (offset + sz > asset_size) {
+    off_t asset_offset = node->node.file.offset;
+    off_t asset_size = node->node.file.size;
+    bool eof = offset + sz > asset_size;
+    if (eof) {
         sz = asset_size - offset;
     }
     if (lseek(rpafd, asset_offset + offset, SEEK_SET) < 0)
         return -errno;
+    int total_read = 0;
     int ret = 0;
     do {
-         ret = read(rpafd, buf + ret, sz - ret);
-         if (ret < 0)
+         ret = read(rpafd, buf + total_read, sz - total_read);
+         if (ret < 0) {
              return -errno;
-    } while (ret < sz);
-    return ret;
+         }
+         total_read += ret;
+    } while (total_read < sz);
+    return total_read;
 }
