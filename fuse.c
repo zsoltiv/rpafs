@@ -33,7 +33,6 @@ struct rpa_node root = {
     .node.dir.nb_entries = 0,
     .node.dir.entries = NULL,
 };
-blksize_t archive_blocksize = 0;
 int rpafd;
 
 static struct rpa_node *find_node(struct rpa_node *root, const char *path)
@@ -78,9 +77,7 @@ void *rpa_init(struct fuse_conn_info *ci, struct fuse_config *cfg)
 int rpa_getattr(const char *path, struct stat *st, struct fuse_file_info *fi)
 {
     struct rpa_node *node = find_node(&root, path);
-    if (node)
-        st->st_blksize = archive_blocksize;
-    else {
+    if (!node) {
         fprintf(stderr, "not found %s\n", path);
         return -ENOENT;
     }

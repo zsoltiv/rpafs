@@ -36,7 +36,6 @@
 #include "fuse.h"
 
 extern struct rpa_node root;
-extern blksize_t archive_blocksize;
 extern int rpafd;
 
 struct fuse_operations rpa_ops = {
@@ -85,7 +84,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "Failed to stat %s: %s", rpa_opts.archive_name, strerror(errno));
         goto err_stat;
     }
-    archive_blocksize = st.st_blksize;
     off_t archive_sz = st.st_size;
     if (archive_sz < RPA3_HEADER_SZ) {
         fprintf(stderr, "Missing RPA-3.0 header\n");
