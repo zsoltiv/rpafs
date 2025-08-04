@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#define _FILE_OFFSET_BITS 64
+#include <sys/types.h>
 
 #include "fs.h"
 #include "unpickle.h"
@@ -47,6 +49,26 @@ enum next_binint {
     NEXT_SIZE = 1,
 };
 
+static off_t unpickle_long1(const uint8_t width, const uint8_t bytes[static width])
+{
+    const uint8_t *last_byte = bytes + width - 1;
+    bool is_signed = *last_byte >= 0x80;
+    uint8_t insignificant = is_signed ? 0xFF : 0x0;
+    off_t accum = 0;
+    for (uint8_t i = 0; i < width; i++) {
+        if (bytes[i] == insignificant)
+            break;
+        accum |= ((off_t)bytes[i]) << (i * 8);
+    }
+
+    if (is_signed) {
+        accum -= 1;
+        accum = ~accum;
+    }
+
+    return accum;
+}
+
 void unpickle_index(const uint64_t file_index_sz,
                     const uint8_t file_index[static file_index_sz],
                     uint32_t key,
@@ -54,9 +76,9 @@ void unpickle_index(const uint64_t file_index_sz,
 {
     const uint8_t *p = file_index;
     enum next_binint next_binint = NEXT_OFFSET;
-    uint32_t val = 0;
     char *path = NULL;
-    uint32_t size, offset;
+    off_t num_width, val, size, offset;
+    bool is_signed;
     while (p < file_index + file_index_sz) {
         switch(*p) {
             case BININT:
@@ -84,7 +106,23 @@ void unpickle_index(const uint64_t file_index_sz,
                 }
                 path = calloc(val + 1, 1);
                 memcpy(path, p + 2, val);
+                next_binint = NEXT_OFFSET;
                 p += 2 + val;
+                break;
+            case (uint8_t) LONG1:
+                num_width = *(p + 1);
+                val = unpickle_long1(num_width, p + 2) ^ key;
+                switch (next_binint) {
+                    case NEXT_OFFSET:
+                        offset = val;
+                        break;
+                    case NEXT_SIZE:
+                        size = val;
+                        add_node_to_tree(root, path, offset, size);
+                        break;
+                }
+                p += 2 + num_width;
+                next_binint = !next_binint;
                 break;
             case LONG:
             case BININT1:
@@ -93,7 +131,6 @@ void unpickle_index(const uint64_t file_index_sz,
             case BINSTRING:
             case UNICODE:
             case BINUNICODE:
-            case (uint8_t) LONG1:
             case (uint8_t) LONG4:
             case (uint8_t) BINUNICODE8:
             case SHORT_BINSTRING:
