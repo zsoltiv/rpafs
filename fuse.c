@@ -82,13 +82,13 @@ int rpa_getattr(const char *path, struct stat *st, struct fuse_file_info *fi)
         return -ENOENT;
     }
     st->st_nlink = 1;
+    st->st_uid = getuid();
+    st->st_gid = getgid();
     if (!node->is_dir) {
         st->st_size = node->node.file.size;
-        st->st_mode = 0444;
-        st->st_mode = S_IFREG;
+        st->st_mode = 0444 | S_IFREG;
     } else {
-        st->st_mode = 0555;
-        st->st_mode = S_IFDIR;
+        st->st_mode = 0555 | S_IFDIR;
     }
 
     return 0;
