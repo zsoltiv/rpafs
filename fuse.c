@@ -21,6 +21,8 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <unistd.h>
+#define _FILE_OFFSET_BITS 64
+#include <sys/types.h>
 
 #define FUSE_USE_VERSION 31
 #include <fuse.h>
