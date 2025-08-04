@@ -5,3 +5,6 @@ rpafs
 *.webp
 *.webm
 .cache/
+*.json
+*.txt
+*.bin

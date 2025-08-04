@@ -120,17 +120,17 @@ int main(int argc, char **argv)
         fprintf(stderr, "Failed to read file index: %s\n", strerror(errno));
         goto err_index;
     }
-    uint64_t file_index_sz = 0;
-    uint8_t *file_index = NULL;
-    ret = decompress_file_index(compressed_index_sz, compressed_index, &file_index_sz, &file_index);
+    uint64_t pickled_index_sz = 0;
+    uint8_t *pickled_index = NULL;
+    ret = decompress_file_index(compressed_index_sz, compressed_index, &pickled_index_sz, &pickled_index);
     if (ret != Z_OK) {
         fprintf(stderr, "Error decompressing the archive index\n");
         goto err_index;
     }
     free(compressed_index);
 
-    unpickle_index(file_index_sz, file_index, xor_key, &root);
-    free(file_index);
+    unpickle_index(pickled_index_sz, pickled_index, xor_key, &root);
+    free(pickled_index);
 
     ret = fuse_main(args.argc, args.argv, &rpa_ops, &root);
     fuse_opt_free_args(&args);
