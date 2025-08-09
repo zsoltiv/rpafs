@@ -44,8 +44,8 @@ void add_node_to_tree(struct rpa_node *root, const char *path, off_t offset, off
         bool found = false;
         for (unsigned i = 0; i < node->node.dir.nb_entries; i++) {
             struct rpa_node *e = node->node.dir.entries[i];
-            size_t node_name_len = strlen(e->name);
-            if (component_len == node_name_len && strncmp(e->name, p, component_len) == 0) {
+            size_t node_name_len = e->namelen;
+            if (component_len == node_name_len && memcmp(e->name, p, component_len) == 0) {
                 found = true;
                 node = e;
                 break;
@@ -55,9 +55,10 @@ void add_node_to_tree(struct rpa_node *root, const char *path, off_t offset, off
             node->node.dir.entries = realloc(node->node.dir.entries, (node->node.dir.nb_entries + 1) * sizeof(struct rpa_entry *));
             struct rpa_node *new_node = calloc(sizeof(struct rpa_node), 1);
             new_node->is_dir = true; // everything starts off as a directory
-            new_node->name = calloc(q - p + 1, 1);
+            new_node->name = calloc(component_len, 1);
+            new_node->namelen = component_len;
             new_node->node.dir.nb_entries = 0;
-            memcpy(new_node->name, p, q - p);
+            memcpy(new_node->name, p, component_len);
             node->node.dir.entries[node->node.dir.nb_entries] = new_node;
             node->node.dir.nb_entries++;
             node = new_node;

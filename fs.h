@@ -25,6 +25,10 @@
 #include <inttypes.h>
 
 struct rpa_node {
+    /*
+     * XXX this is not NULL-terminated as we
+     * do length comparisons and memcmp
+     */
     char *name;
     union {
         struct {
@@ -35,6 +39,7 @@ struct rpa_node {
             uint64_t nb_entries;
         } dir;
     } node;
+    size_t namelen;
     bool is_dir;
 };
 
