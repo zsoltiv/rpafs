@@ -78,7 +78,6 @@ void unpickle_index(const uint64_t file_index_sz,
     enum next_binint next_binint = NEXT_OFFSET;
     char *path = NULL;
     off_t num_width, val, size, offset;
-    bool is_signed;
     while (p < file_index + file_index_sz) {
         switch(*p) {
             case BININT:
@@ -135,8 +134,10 @@ void unpickle_index(const uint64_t file_index_sz,
             case (uint8_t) BINUNICODE8:
             case SHORT_BINSTRING:
                 fprintf(stderr, "Unhandled opcode %x\n", *p);
+                /* fallthrough */
             default:
                 p++;
+                break;
         }
     }
 }

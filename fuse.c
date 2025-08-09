@@ -73,11 +73,14 @@ static struct rpa_node *find_node(struct rpa_node *root, const char *path)
 
 void *rpa_init(struct fuse_conn_info *ci, struct fuse_config *cfg)
 {
+    (void) ci;
+    (void) cfg;
     return &root;
 }
 
 int rpa_getattr(const char *path, struct stat *st, struct fuse_file_info *fi)
 {
+    (void) fi;
     struct rpa_node *node = find_node(&root, path);
     if (!node) {
         fprintf(stderr, "not found %s\n", path);
@@ -103,6 +106,9 @@ int rpa_readdir(const char *path,
                 struct fuse_file_info *ffi,
                 enum fuse_readdir_flags flags)
 {
+    (void) offset;
+    (void) ffi;
+    (void) flags;
     filler(data, ".", NULL, 0, 0);
     filler(data, "..", NULL, 0, 0);
 
@@ -134,10 +140,11 @@ int rpa_read(const char *path,
              off_t offset,
              struct fuse_file_info *fi)
 {
+    (void) fi;
     struct rpa_node *node = find_node(&root, path);
     off_t asset_offset = node->node.file.offset;
     off_t asset_size = node->node.file.size;
-    bool eof = offset + sz > asset_size;
+    bool eof = offset + sz > (size_t)asset_size;
     if (eof) {
         sz = asset_size - offset;
     }
@@ -151,6 +158,6 @@ int rpa_read(const char *path,
              return -errno;
          }
          total_read += ret;
-    } while (total_read < sz);
+    } while ((size_t)total_read < sz);
     return total_read;
 }

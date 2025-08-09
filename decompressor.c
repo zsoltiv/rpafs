@@ -56,6 +56,7 @@ int decompress_file_index(uint64_t compressed_file_index_sz,
             switch (ret) {
                 case Z_NEED_DICT:
                     ret = Z_DATA_ERROR;
+                    /* fallthrough */
                 case Z_DATA_ERROR:
                     inflateEnd(&strm);
                     free(*decompressed_file_index);
